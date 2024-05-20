@@ -37,13 +37,17 @@ from PIL import Image, ImageDraw
 from models import build_model
 from util.tool import load_model
 from main import get_args_parser
-from torch.nn.functional import interpolate
+#from torch.nn.functional import interpolate
 from typing import List
 from util.evaluation import Evaluator
 import motmetrics as mm
 import shutil
+from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
+                       accuracy, get_world_size, interpolate, get_rank,
+                       is_dist_avail_and_initialized, inverse_sigmoid)
 
 from models.structures import Instances
+import torch.nn.functional as F2
 
 np.random.seed(2020)
 
@@ -360,16 +364,41 @@ class Detector(object):
         total_dts = 0
         track_instances = None
         max_id = 0
+        print('frame length = ',self.img_len)
         for i in tqdm(range(0, self.img_len)):
             img, targets = self.load_img_from_file(self.img_list[i])
             cur_img, ori_img = self.init_img(img)
-
+            #print('cur img = ',cur_img.shape)
+            #[1,3,800,1066]
+            
+            
+            
+            #推論の際にtime attentionを適用
+            input_img = cur_img.squeeze()
+            #print('input = ',input_img.shape)
+            #[3,800,1066]
+            if i == 0:
+                frame_tensor_time1 = F2.interpolate(input_img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+                frame_tensor_time2 = F2.interpolate(input_img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+            else:
+                img2, targets = self.load_img_from_file(self.img_list[i - 1])
+                cur_img2, ori_img2 = self.init_img(img2)
+                input_img2 = cur_img2.squeeze()
+                frame_tensor_time1 = F2.interpolate(input_img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+                frame_tensor_time2 = F2.interpolate(input_img2.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+            
+            cat_frames_time = torch.cat((frame_tensor_time1.unsqueeze(1),frame_tensor_time2.unsqueeze(1)),dim = 1)
+            cat_frames_time = cat_frames_time.unsqueeze(0)
+            #print(cat_frames_time.shape)
+            #tensor --> [1,3,2,224,224]
+            
             # track_instances = None
             if track_instances is not None:
                 track_instances.remove('boxes')
                 track_instances.remove('labels')
-
-            res = self.detr.inference_single_image(cur_img.cuda().float(), (self.seq_h, self.seq_w), track_instances)
+            
+            #推論部分
+            res = self.detr.inference_single_image(cur_img.cuda().float(), cat_frames_time.cuda().float(), (self.seq_h, self.seq_w), track_instances)
             track_instances = res['track_instances']
             max_id = max(max_id, track_instances.obj_idxes.max().item())
 

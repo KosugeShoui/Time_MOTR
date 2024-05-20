@@ -646,14 +646,18 @@ class MOTR(nn.Module):
         return frame_res
 
     @torch.no_grad()
-    def inference_single_image(self, img, ori_img_size, track_instances=None):
-        #ここは通っていないかも、推論のみかも
+    def inference_single_image(self, img, time_frames, ori_img_size, track_instances=None):
+        #推論のみかも
         #print('ok')
+        #print(len(img))
+        #print(img.shape) --> 1フレームのみ
         if not isinstance(img, NestedTensor):
             img = nested_tensor_from_tensor_list(img)
         if track_instances is None:
             track_instances = self._generate_empty_tracks()
-        res = self._forward_single_image(img,
+            
+        #複数フレームでの推論
+        res = self._forward_single_image(img,time_frame=time_frames,
                                          track_instances=track_instances)
         res = self._post_process_single_image(res, track_instances, False)
 
@@ -695,6 +699,7 @@ class MOTR(nn.Module):
                             
             #Timesformer用の入力画像の準備
             # 画像テンソルを [3, h, w] から [3, 224, 224] にリサイズ
+            #print(frame.shape)
             if frame_index == 0:
                 frame_tensor_time1 = F.interpolate(frame.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
                 frame_tensor_time2 = F.interpolate(frames[1].unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)

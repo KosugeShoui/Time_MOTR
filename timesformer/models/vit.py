@@ -13,6 +13,7 @@ import numpy as np
 from timesformer.models.vit_utils import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timesformer.models.helpers import load_pretrained
 from timesformer.models.vit_utils import DropPath, to_2tuple, trunc_normal_
+import matplotlib.pyplot as plt
 
 from .build import MODEL_REGISTRY
 from torch import einsum
@@ -127,6 +128,7 @@ class Block(nn.Module):
             res_temporal = self.drop_path(self.temporal_attn(self.temporal_norm1(xt)))
             res_temporal = rearrange(res_temporal, '(b h w) t m -> b (h w t) m',b=B,h=H,w=W,t=T)
             res_temporal = self.temporal_fc(res_temporal)
+            #print(res_temporal.shape)
             xt = x[:,1:,:] + res_temporal
 
             ## Spatial
@@ -146,11 +148,18 @@ class Block(nn.Module):
             res_spatial = rearrange(res_spatial, '(b t) (h w) m -> b (h w t) m',b=B,h=H,w=W,t=T)
             res = res_spatial
             x = xt
+            #print('res_spatial Attn = ',res.shape)
+            #print('timesformer feature = ',x.shape)
 
             ## Mlp
             x = torch.cat((init_cls_token, x), 1) + torch.cat((cls_token, res), 1)
             x = x + self.drop_path(self.mlp(self.norm2(x)))
-            return x
+            
+            #times Attention 
+            time_attn_feat = xt + res
+            #print(time_attn_feat.shape)
+            
+            return x , time_attn_feat
 
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
@@ -176,7 +185,7 @@ class PatchEmbed(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    """ Vision Transformere
+    """ Vision Transformer
     """
     def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
@@ -284,12 +293,24 @@ class VisionTransformer(nn.Module):
             else:
                 x = x + self.time_embed
             x = self.time_drop(x)
+            
+            #print('time1 = ',x.shape)
+            #[196,2,768]
+            #time_memory_sub = x[:,0,0].to('cpu').detach().numpy().copy()
+            #print('time1 = ',time_memory_sub)
+            #time_memory_sub = time_memory_sub.reshape(14,14)
+            #plt.imshow(time_memory_sub,cmap='viridis')
+            #plt.savefig('timeattn_small.png')
+        
             x = rearrange(x, '(b n) t m -> b (n t) m',b=B,t=T)
+            #print('time2 = ',x[0,:,0])
+            #[1,392,768]
             x = torch.cat((cls_tokens, x), dim=1)
 
         ## Attention blocks
         for blk in self.blocks:
-            x = blk(x, B, T, W)
+            #print(x.shape)
+            x, features = blk(x, B, T, W)
 
         ### Predictions for space-only baseline
         if self.attention_type == 'space_only':
@@ -297,7 +318,7 @@ class VisionTransformer(nn.Module):
             x = torch.mean(x, 1) # averaging predictions for every frame
 
         x = self.norm(x)
-        return x[:, 0]
+        return x[:, 0] , features
 
     def forward(self, x):
         x = self.forward_features(x)
@@ -347,5 +368,5 @@ class TimeSformer(nn.Module):
         if self.pretrained:
             load_pretrained(self.model, num_classes=self.model.num_classes, in_chans=kwargs.get('in_chans', 3), filter_fn=_conv_filter, img_size=img_size, num_frames=num_frames, num_patches=self.num_patches, attention_type=self.attention_type, pretrained_model=pretrained_model)
     def forward(self, x):
-        x = self.model(x)
+        x  = self.model(x)
         return x

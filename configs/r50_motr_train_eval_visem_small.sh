@@ -7,10 +7,10 @@
 
 
 # for visem
-# sh configs/r50_motr_train_dance.sh
+# sh configs/r50_motr_train_eval_visem_small.sh
 
 PRETRAIN=r50_deformable_detr_plus_iterative_bbox_refinement-checkpoint.pth
-EXP_DIR=exps_visem/exp_0520_time_test1
+EXP_DIR=exps_visem/exp_0521_timeAttn_test
 
 
 python3 -m torch.distributed.launch \
@@ -28,17 +28,18 @@ python3 -m torch.distributed.launch \
     --query_interaction_layer 'QIM' --extra_track_attn \
     --data_txt_path_train ./datasets/data_path/joint.train \
     --data_txt_path_val ./datasets/data_path/mot17.train \
-    --epoch 10 \
+    --epoch 50 \
     --device 'cuda' \
     --nheads 8  \
-    #--pretrained ${PRETRAIN} 
-    #--loss_schedule \
-    #--giou_loss_coef 4 --final_weight 0.1 \
+    --pretrained ${PRETRAIN} \
+    --loss_schedule \
+    --giou_loss_coef 4 --final_weight 0.1 \
     #sampler_steps 5 9 15
    
     #| tee ${EXP_DIR}/output.log
 
 python3  util/learning_curve.py ${EXP_DIR}
+
 
 #evaluation phase
 python3 eval_visem.py \

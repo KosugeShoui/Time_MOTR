@@ -52,9 +52,11 @@ class TimeSformer_getattn(nn.Module):
         #print(x.shape)
 
         # TimeSformerモデルに入力
-        features = self.backbone(x)
+        cls_token, features = self.backbone(x)
         # 特徴量を [1, 3, 256] に変形
-        features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256
+        #print('time attn = ',features.shape)
+        #[1,392,768]
+        #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
 
         return features
     
@@ -189,9 +191,26 @@ class DeformableTransformer(nn.Module):
         mask_flatten = []
         lvl_pos_embed_flatten = []
         spatial_shapes = []
+        src_shape_list = []
+        
+        # Timeformer class --> ここにtimesformerからのAttentionの機構を導入したい
+        #print('time frames = ',time_frame.shape)
+        #[1,3,2,224,224]
+        #print(time_frame.shape)
+        time_memory = self.time_attn(time_frame)
+        time_memory = time_memory[:,::2,:]
+        #チャネル方向の平均を取る
+        time_memory = time_memory.view(1, 196, 256, 3).mean(dim=-1)
+        #print(time_memory.shape)
+        #[1,196,256]
+        #print('time memory = ',time_memory[0,:,0].shape)
+        #time_memory = time_memory[0,:,0].to('cpu').detach().numpy().copy()
+        #plt.imshow(time_memory_sub,cmap='viridis')
+        #plt.savefig('timeattn.png')
+        
         for lvl, (src, mask, pos_embed) in enumerate(zip(srcs, masks, pos_embeds)):
             bs, c, h, w = src.shape
-            #print(src.shape)
+            src_shape_list.append([h , w])
             #multi-scale feature map
             #torch.Size([1, 256, 112, 132])
             """
@@ -209,8 +228,23 @@ class DeformableTransformer(nn.Module):
             #torch.Size([1, 256, 28, 33])
             #torch.Size([1, 256, 14, 17])
             
+            #attentionweightを変形
+            time_memory_map = time_memory.view(1,14,14,256)
+            #特徴マップのサイズにリサイズ
+            time_memory_map = F.interpolate(time_memory_map.permute(0, 3, 1, 2), size=(h, w), mode='bilinear', align_corners=False)
+            time_memory_map = time_memory_map.permute(0, 1, 2, 3)
+            #print('time memory = ', time_memory_map.shape)
+            #time_memory_map = time_memory_map[0,:,:,0].to('cpu').detach().numpy().copy()
+            #plt.imshow(time_memory_map)
+            #plt.savefig('resized_timeattn.png')
+            
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
+            
+            # Feature Map + Resized Attention Weight
+            src = src + time_memory_map
+            #print('concat map = ',src.shape)
+            # end 
             src = src.flatten(2).transpose(1, 2)
             mask = mask.flatten(1)
             pos_embed = pos_embed.flatten(2).transpose(1, 2)
@@ -218,6 +252,7 @@ class DeformableTransformer(nn.Module):
             lvl_pos_embed_flatten.append(lvl_pos_embed)
             src_flatten.append(src)
             mask_flatten.append(mask)
+        
             
         src_flatten = torch.cat(src_flatten, 1)
         mask_flatten = torch.cat(mask_flatten, 1)
@@ -225,42 +260,13 @@ class DeformableTransformer(nn.Module):
         spatial_shapes = torch.as_tensor(spatial_shapes, dtype=torch.long, device=src_flatten.device)
         level_start_index = torch.cat((spatial_shapes.new_zeros((1, )), spatial_shapes.prod(1).cumsum(0)[:-1]))
         valid_ratios = torch.stack([self.get_valid_ratio(m) for m in masks], 1)
-        #print(src_flatten.shape)
-        #[1,flatten,256]
-        #print('spatial shape = ',spatial_shapes.shape)
         
-        # Timeformer class --> ここにtimesformerからのAttentionの機構を導入したい
-        #print('time frames = ',time_frame.shape)
-        #print(time_frame.shape)
-        time_memory = self.time_attn(time_frame)
-        #print('time memory = ',time_memory.shape)
-        # [1,3,256]
-        
-
         # encoder
         memory = self.encoder(src_flatten, spatial_shapes, level_start_index, valid_ratios, lvl_pos_embed_flatten, mask_flatten)
         #print(memory.shape)
         
-        # feature concat phase1
-        #memory = torch.cat((memory,time_memory),dim = 1)
-        #print('new memory = ',memory.shape)
-        #[1,19642,256]  -->  14784 + 3696 + 924 + 238
-        
-        #feature add phase2
-        # features_smallを繰り返してfeatures_largeと同じ形状にする
-        repeat_factor = memory.size(1) // time_memory.size(1)  # 22096 / 3 = 7365 (整数除算)
-        features_small_repeated = time_memory.repeat(1, repeat_factor, 1)
-        # 残りの部分に対する対応
-        remaining = memory.size(1) % time_memory.size(1)
-        if remaining > 0:
-            features_small_repeated = torch.cat([features_small_repeated, time_memory[:, :remaining, :]], dim=1)
-        memory = memory + features_small_repeated
-        #print(memory.shape)
-        
-        
         # prepare input for decoder
         bs, _, c = memory.shape
-        #print(memory.shape)
         
         if self.two_stage:
             output_memory, output_proposals = self.gen_encoder_output_proposals(memory, mask_flatten, spatial_shapes)
