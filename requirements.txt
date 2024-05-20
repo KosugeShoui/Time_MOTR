@@ -1,0 +1,38 @@
+pycocotools
+tqdm
+cython
+scipy
+motmetrics
+opencv-python
+seaborn
+lap
+
+# pytorch
+torch
+torchvision
+torchsummary
+pytorch-lightning
+pytorchvideo
+tensorboard
+
+
+# basic
+numpy
+pandas
+scikit-learn
+
+# data visualization
+matplotlib
+seaborn
+
+# tqdm
+tqdm
+ipywidgets
+
+# slowfast & TimeSformer
+git+https://github.com/facebookresearch/fvcore
+simplejson
+einops
+timm
+av
+psutil
