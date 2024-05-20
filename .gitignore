@@ -15,6 +15,5 @@ attn_vis/
 multiscale_feature_map/
 input_images
 Time_MOTR/*.png
-timesformer/*
 weight/
 core
