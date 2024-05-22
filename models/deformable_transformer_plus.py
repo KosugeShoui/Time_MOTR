@@ -59,7 +59,23 @@ class TimeSformer_getattn(nn.Module):
         #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
 
         return features
-    
+
+class Normalizer:
+    def normalize_14x14(self, tensor):
+        # 各チャネルごとに正規化を行い、新しいテンソルを格納するリストを作成
+        normalized_channels = []
+        
+        for c in range(tensor.shape[-1]):
+            # それぞれのチャネルに対して正規化を行う
+            min_val = tensor[:, :, :, c].min()
+            max_val = tensor[:, :, :, c].max()
+            normalized_channel = (tensor[:, :, :, c] - min_val) / (max_val - min_val)
+            normalized_channels.append(normalized_channel)
+        
+        # 正規化されたチャネルを結合して新しいテンソルを作成
+        normalized_tensor = torch.stack(normalized_channels, dim=-1)
+        
+        return normalized_tensor
 
     
 
@@ -95,6 +111,7 @@ class DeformableTransformer(nn.Module):
         #Time Attention layer
         self.time_attn = TimeSformer_getattn()
         #print(self.time_attn)
+        self.tensor_norm = Normalizer()
         #model see
 
         if two_stage:
@@ -180,6 +197,17 @@ class DeformableTransformer(nn.Module):
         max_val = np.max(tensor)
         normalized_tensor = (tensor - min_val) / (max_val - min_val)
         return normalized_tensor
+    
+
+    # 14x14の次元を正規化する関数
+    def normalize_14x14(self,tensor):
+        # チャネルの次元を分離
+        for c in range(tensor.shape[-1]):
+            # それぞれのチャネルに対して正規化を行う
+            min_val = tensor[:, :, :, c].min()
+            max_val = tensor[:, :, :, c].max()
+            tensor[:, :, :, c] = (tensor[:, :, :, c] - min_val) / (max_val - min_val)
+        return tensor
 
     
     #---> from self.transformer
@@ -228,21 +256,32 @@ class DeformableTransformer(nn.Module):
             #torch.Size([1, 256, 28, 33])
             #torch.Size([1, 256, 14, 17])
             
+            # 異常検出を有効にする
+            #torch.autograd.set_detect_anomaly(True)
+            # 勾配計算を有効に
+            
+            
             #attentionweightを変形
             time_memory_map = time_memory.view(1,14,14,256)
+            time_memory_map = self.tensor_norm.normalize_14x14(time_memory_map)
             #特徴マップのサイズにリサイズ
+            time_memory_map.requires_grad_(True)
             time_memory_map = F.interpolate(time_memory_map.permute(0, 3, 1, 2), size=(h, w), mode='bilinear', align_corners=False)
             time_memory_map = time_memory_map.permute(0, 1, 2, 3)
             #print('time memory = ', time_memory_map.shape)
-            #time_memory_map = time_memory_map[0,:,:,0].to('cpu').detach().numpy().copy()
-            #plt.imshow(time_memory_map)
-            #plt.savefig('resized_timeattn.png')
+            #print('src shape = ',src.shape)
+            #time_memory_map_sub = time_memory_map[0,0,:,:].to('cpu').detach().numpy().copy()
+            #plt.imshow(time_memory_map_sub)
+            #plt.savefig('norm_resized_timeattn.png')
             
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
-            # Feature Map + Resized Attention Weight
-            src = src + time_memory_map
+            # Feature Map + Resized Attention Weight or F * Attention Weight
+            src = src * time_memory_map
+            #src = src + time_memory_map
+            
+            #print(time_memory_map) [0--1]
             #print('concat map = ',src.shape)
             # end 
             src = src.flatten(2).transpose(1, 2)
