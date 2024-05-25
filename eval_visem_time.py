@@ -381,7 +381,7 @@ class Detector(object):
                 frame_tensor_time1 = F2.interpolate(input_img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
                 frame_tensor_time2 = F2.interpolate(input_img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
             else:
-                img2, targets = self.load_img_from_file(self.img_list[i - 1])
+                img2, targets2 = self.load_img_from_file(self.img_list[i - 1])
                 cur_img2, ori_img2 = self.init_img(img2)
                 input_img2 = cur_img2.squeeze()
                 frame_tensor_time1 = F2.interpolate(input_img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
@@ -433,7 +433,7 @@ if __name__ == '__main__':
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     # load model and weights
-    detr, _, _ = build_model(args)
+    detr, _, _ ,timesformer = build_model(args)
     checkpoint = torch.load(args.resume, map_location='cpu')
     detr = load_model(detr, args.resume)
     detr = detr.cuda()

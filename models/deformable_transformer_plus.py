@@ -25,11 +25,13 @@ from util.box_ops import box_cxcywh_to_xyxy
 from models.ops.modules import MSDeformAttn
 import matplotlib.pyplot as plt
 
-from attn_vis import visualize
+#from attn_vis import visualize
 import numpy as np
 
 from timesformer.models.vit import TimeSformer
+import os
 
+"""
 class TimeSformer_getattn(nn.Module):
     def __init__(self):
         super().__init__()
@@ -59,6 +61,7 @@ class TimeSformer_getattn(nn.Module):
         #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
 
         return features
+"""
 
 class Normalizer:
     def normalize_14x14(self, tensor):
@@ -84,8 +87,9 @@ class DeformableTransformer(nn.Module):
                  num_encoder_layers=6, num_decoder_layers=6, dim_feedforward=1024, dropout=0.1,
                  activation="relu", return_intermediate_dec=False,
                  num_feature_levels=4, dec_n_points=4,  enc_n_points=4,
-                 two_stage=False, two_stage_num_proposals=300, decoder_self_cross=True, sigmoid_attn=False,
-                 extra_track_attn=False):
+                 two_stage=False, two_stage_num_proposals=300,
+                 decoder_self_cross=True, sigmoid_attn=False,
+                 extra_track_attn=False,timesformer = None):
         super().__init__()
 
         self.new_frame_adaptor = None
@@ -109,7 +113,7 @@ class DeformableTransformer(nn.Module):
         self.level_embed = nn.Parameter(torch.Tensor(num_feature_levels, d_model))
         
         #Time Attention layer
-        self.time_attn = TimeSformer_getattn()
+        self.time_attn = timesformer
         #print(self.time_attn)
         self.tensor_norm = Normalizer()
         #model see
@@ -229,12 +233,6 @@ class DeformableTransformer(nn.Module):
         time_memory = time_memory[:,::2,:]
         #チャネル方向の平均を取る
         time_memory = time_memory.view(1, 196, 256, 3).mean(dim=-1)
-        #print(time_memory.shape)
-        #[1,196,256]
-        #print('time memory = ',time_memory[0,:,0].shape)
-        #time_memory = time_memory[0,:,0].to('cpu').detach().numpy().copy()
-        #plt.imshow(time_memory_sub,cmap='viridis')
-        #plt.savefig('timeattn.png')
         
         for lvl, (src, mask, pos_embed) in enumerate(zip(srcs, masks, pos_embeds)):
             bs, c, h, w = src.shape
@@ -256,33 +254,71 @@ class DeformableTransformer(nn.Module):
             #torch.Size([1, 256, 28, 33])
             #torch.Size([1, 256, 14, 17])
             
-            # 異常検出を有効にする
-            #torch.autograd.set_detect_anomaly(True)
-            # 勾配計算を有効に
             
             
             #attentionweightを変形
             time_memory_map = time_memory.view(1,14,14,256)
             time_memory_map = self.tensor_norm.normalize_14x14(time_memory_map)
             #特徴マップのサイズにリサイズ
-            time_memory_map.requires_grad_(True)
+            #time_memory_map.requires_grad_(False)
             time_memory_map = F.interpolate(time_memory_map.permute(0, 3, 1, 2), size=(h, w), mode='bilinear', align_corners=False)
             time_memory_map = time_memory_map.permute(0, 1, 2, 3)
             #print('time memory = ', time_memory_map.shape)
             #print('src shape = ',src.shape)
-            #time_memory_map_sub = time_memory_map[0,0,:,:].to('cpu').detach().numpy().copy()
+            time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
+            time_memory_map_sub = np.mean(time_memory_map_sub,axis=0)
             #plt.imshow(time_memory_map_sub)
-            #plt.savefig('norm_resized_timeattn.png')
+            #plt.savefig('norm_resized_timeattn_{}.png'.format(lvl))
             
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
             # Feature Map + Resized Attention Weight or F * Attention Weight
-            src = src * time_memory_map
-            #src = src + time_memory_map
+            src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
+            src_sub = np.mean(src_sub,axis= 0)
+            #print(src_sub.shape)
             
-            #print(time_memory_map) [0--1]
-            #print('concat map = ',src.shape)
+            #plt.imshow(src_sub)
+            #plt.savefig('norm_src{}.png'.format(lvl))
+            #print(src.shape)
+            
+            # Feature Map + Resized Attention Weight or F * Attention Weight
+            src = src + time_memory_map
+            #src_sub2 = src[0,:,:,:].to('cpu').detach().numpy().copy()
+            #src_sub2 = np.mean(src_sub2, axis= 0)
+            #src_sub2 = self.normalize_tensor(src_sub2)
+            
+            #visualization
+            #最も解像度が大きい特徴マップにのみ適応
+            """
+            if lvl == 0:
+                save_path = 'w_eval_attention'
+                os.makedirs(save_path,exist_ok=True)
+                
+                list_num = len(os.listdir(save_path))
+                save_num = list_num // 3
+                
+                plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+                #1 time memory
+                plt.imshow(time_memory_map_sub,cmap='viridis')
+                plt.axis('tight')
+                plt.axis('off')
+                plt.savefig(save_path + '/time_weight_{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
+                
+                #2 normal src
+                #plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+                plt.imshow(src_sub,cmap='viridis')
+                plt.axis('tight')
+                plt.axis('off')
+                plt.savefig(save_path + '/src_notime{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
+                #3 timed src
+                #plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+                plt.imshow(src_sub2,cmap='viridis')
+                plt.axis('tight')
+                plt.axis('off')
+                plt.savefig(save_path + '/src_time{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
+            """
+
             # end 
             src = src.flatten(2).transpose(1, 2)
             mask = mask.flatten(1)
@@ -291,6 +327,8 @@ class DeformableTransformer(nn.Module):
             lvl_pos_embed_flatten.append(lvl_pos_embed)
             src_flatten.append(src)
             mask_flatten.append(mask)
+        
+        
         
             
         src_flatten = torch.cat(src_flatten, 1)
@@ -363,11 +401,9 @@ class DeformableTransformer(nn.Module):
         inter_references_out = inter_references
         if self.two_stage:
             return hs, init_reference_out, inter_references_out, enc_outputs_class, enc_outputs_coord_unact
-        return hs, init_reference_out, inter_references_out, None, None
+        return hs, init_reference_out, inter_references_out, self.time_attn , None, None
 
 
-#この辺にTime Attentionの入力をしたい
-#以下のEncoder layerが6block積まれている
 
 class DeformableTransformerEncoderLayer(nn.Module):
     def __init__(self,
@@ -650,7 +686,7 @@ def _get_activation_fn(activation):
 
 
 
-def build_deforamble_transformer(args):
+def build_deforamble_transformer(args,timesformer):
     return DeformableTransformer(
         d_model=args.hidden_dim,
         nhead=args.nheads,
@@ -668,6 +704,7 @@ def build_deforamble_transformer(args):
         decoder_self_cross=not args.decoder_cross_self,
         sigmoid_attn=args.sigmoid_attn,
         extra_track_attn=args.extra_track_attn,
+        timesformer = timesformer
     )
 
 

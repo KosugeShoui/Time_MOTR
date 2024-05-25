@@ -35,6 +35,7 @@ from .memory_bank import build_memory_bank
 from .deformable_detr import SetCriterion, MLP
 from .segmentation import sigmoid_focal_loss
 import matplotlib.pyplot as plt
+from timesformer.models.vit import TimeSformer
 
 def normalize_tensor(tensor):
     min_val = np.min(tensor)
@@ -64,6 +65,7 @@ class ClipMatcher(SetCriterion):
         self.focal_loss = True
         self.losses_dict = {}
         self._current_frame_idx = 0
+        
 
     def initialize_for_single_clip(self, gt_instances: List[Instances]):
         self.gt_instances = gt_instances
@@ -373,7 +375,42 @@ def _get_clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
 
 
+class TimeSformer_getattn(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.backbone = TimeSformer(img_size=224, num_classes=1000, num_frames=2, 
+                                    attention_type='divided_space_time',  pretrained_model='TimeSformer_divST_8_224_SSv2.pyth')
+        self.backbone_output_dim = 768
+    
+    def forward(self, x):
+        # xの形状は [batch_size, num_frames, channels, height, width]
+        
+        batch_size, channels, num_frames, height, width = x.shape
+        #print('channel , height , width = ',channels, height, width)
+        assert channels == 3 and height == 224 and width == 224, \
+            "Input shape must be [batch_size, 3 , num_frames , 224, 224]"
+
+        # TimeSformerに渡すためにテンソルの形状を変更
+        #x = x.view(batch_size, num_frames, height, width, channels)  # [batch_size, num_frames, height, width, channels]
+        #x = x.permute(0, 4, 1, 2, 3)  # [batch_size, channels, num_frames, height, width]
+        #print(x.shape)
+
+        # TimeSformerモデルに入力
+        cls_token, features = self.backbone(x)
+        # 特徴量を [1, 3, 256] に変形
+        #print('time attn = ',features.shape)
+        #[1,392,768]
+        #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
+
+        return features
+
+
+
 class MOTR(nn.Module):
+    #times model definition
+    #times_model = None
+    
     def __init__(self, backbone, transformer, num_classes, num_queries, num_feature_levels, criterion, track_embed,
                  aux_loss=True, with_box_refine=False, two_stage=False, memory_bank=None, use_checkpoint=False):
         """ Initializes the model.
@@ -397,6 +434,10 @@ class MOTR(nn.Module):
         self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
         self.num_feature_levels = num_feature_levels
         self.use_checkpoint = use_checkpoint
+        
+        #times model definition
+        self.times_model = None
+        
         if not two_stage:
             self.query_embed = nn.Embedding(num_queries, hidden_dim * 2)
         if num_feature_levels > 1:
@@ -580,9 +621,14 @@ class MOTR(nn.Module):
             #1 torch.Size([1, 256, 58, 78])
             #2 torch.Size([1, 256, 29, 39])
             #3 torch.Size([1, 256, 15, 20])
-
-        hs, init_reference, inter_references, enc_outputs_class, enc_outputs_coord_unact = self.transformer(srcs,time_frame, masks, pos, track_instances.query_pos, ref_pts=track_instances.ref_pts)
-
+            
+        #timeformerのモデルを返す
+        hs, init_reference, inter_references, timesformer_model, enc_outputs_class, enc_outputs_coord_unact = self.transformer(srcs,time_frame, masks, pos, track_instances.query_pos, ref_pts=track_instances.ref_pts)
+        #print(timesformer_model)
+        self.times_model = timesformer_model
+        #print('timesformer = ',MOTR.times_model)
+        #print(self.times_model)
+        
         outputs_classes = []
         outputs_coords = []
         for lvl in range(hs.shape[0]):
@@ -610,6 +656,13 @@ class MOTR(nn.Module):
             out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
         out['hs'] = hs[-1]
         return out
+    
+    #model return function
+    #@classmethod
+    def return_time_model(self):
+        times_model = self.times_model
+        return times_model
+        
     
     def _post_process_single_image(self, frame_res, track_instances, is_last):
         with torch.no_grad():
@@ -647,8 +700,7 @@ class MOTR(nn.Module):
 
     @torch.no_grad()
     def inference_single_image(self, img, time_frames, ori_img_size, track_instances=None):
-        #推論のみかも
-        #print('ok')
+        #推論のみ
         #print(len(img))
         #print(img.shape) --> 1フレームのみ
         if not isinstance(img, NestedTensor):
@@ -799,8 +851,11 @@ def build(args):
     device = torch.device(args.device)
 
     backbone = build_backbone(args)
-
-    transformer = build_deforamble_transformer(args)
+    
+    #timesformer instances
+    times_model = TimeSformer_getattn()
+    #timesformer 導入
+    transformer = build_deforamble_transformer(args,times_model)
     d_model = transformer.d_model
     hidden_dim = args.dim_feedforward
     query_interaction_layer = build_query_interaction_layer(args, args.query_interaction_layer, d_model, hidden_dim, d_model*2)
@@ -846,4 +901,6 @@ def build(args):
         memory_bank=memory_bank,
         use_checkpoint=args.use_checkpoint,
     )
-    return model, criterion, postprocessors
+    
+    
+    return model, criterion, postprocessors, times_model

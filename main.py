@@ -203,12 +203,17 @@ def main(args):
     np.random.seed(seed)
     random.seed(seed)
 
-    model, criterion, postprocessors = build_model(args)
+    model, criterion, postprocessors , timesformer_model = build_model(args)
+    #print(model)
     model.to(device)
+    #print(timesformer_model)
+    #timesformer_model.to(device)
 
     model_without_ddp = model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    times_parameters = sum(p.numel() for p in timesformer_model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
+    print('times model number of params:', times_parameters)
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
@@ -338,6 +343,9 @@ def main(args):
     loss_list = []
     
     for epoch in tqdm(range(args.start_epoch, args.epochs)):
+        
+        path_flag = False
+        
         if args.distributed:
             sampler_train.set_epoch(epoch)
         
@@ -380,25 +388,34 @@ def main(args):
         if args.output_dir:
             #best epoch path save
             if epoch + 1 == 1:
+                path_flag = True
                 checkpoint_paths = [output_dir / 'checkpoint.pth']
             else:
                 #loss list 1 past
                 loss_list_past = loss_list[:-1]
                 if min(loss_list_past) >= loss_list[epoch]: 
-                    checkpoint_paths = [output_dir / 'best_weight.pth'.format(epoch+1)]
-                    print('\nbest path update\n')
+                    path_flag = True
+                    checkpoint_paths = [output_dir / 'best_weight.pth']
+                    print('\nbest weight update\n')
+                else:
+                    print('\nbest weight no update\n')
+                    
                     
             # extra checkpoint before LR drop and every 5 epochs
             #if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.save_period == 0 or (((args.epochs >= 100 and (epoch + 1) > 100) or args.epochs < 100) and (epoch + 1) % 5 == 0):
                 #checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
-            for checkpoint_path in checkpoint_paths:
-                utils.save_on_master({
-                    'model': model_without_ddp.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'lr_scheduler': lr_scheduler.state_dict(),
-                    'epoch': epoch,
-                    'args': args,
-                }, checkpoint_path)
+            if path_flag :
+                print('flag = True , saving weight')
+                for checkpoint_path in checkpoint_paths:
+                    utils.save_on_master({
+                        'model': model_without_ddp.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'lr_scheduler': lr_scheduler.state_dict(),
+                        'epoch': epoch,
+                        'args': args,
+                    }, checkpoint_path)
+                #times_model_path = [output_dir / 'times_best_weight.pth']
+                #torch.save(timesformer_model.state_dict(),times_model_path)
         
         
         

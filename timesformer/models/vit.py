@@ -158,6 +158,8 @@ class Block(nn.Module):
             #times Attention 
             time_attn_feat = xt + res
             #print(time_attn_feat.shape)
+            #print('blk_out = ',x.shape)
+            #[1,393,768]
             
             return x , time_attn_feat
 
@@ -318,12 +320,18 @@ class VisionTransformer(nn.Module):
             x = torch.mean(x, 1) # averaging predictions for every frame
 
         x = self.norm(x)
+        #print('forward shape = ',x.shape)
+        #[1,393,768]
         return x[:, 0] , features
 
     def forward(self, x):
-        x = self.forward_features(x)
+        x , features = self.forward_features(x)
+        #print(x.shape)
+        #[1,768]-->cls token??
         x = self.head(x)
-        return x
+        #print('last head = ',x.shape)
+        #[1,1000]
+        return x , features
 
 def _conv_filter(state_dict, patch_size=16):
     """ convert patch embedding weight from manual patchify + linear proj to conv"""
@@ -357,7 +365,7 @@ class vit_base_patch16_224(nn.Module):
 
 @MODEL_REGISTRY.register()
 class TimeSformer(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, num_classes=400, num_frames=8, attention_type='divided_space_time',  pretrained_model='', **kwargs):
+    def __init__(self, img_size=224, patch_size=16, num_classes=1000, num_frames=8, attention_type='divided_space_time',  pretrained_model='TimeSformer_divST_8_224_SSv2.pyth', **kwargs):
         super(TimeSformer, self).__init__()
         self.pretrained=True
         self.model = VisionTransformer(img_size=img_size, num_classes=num_classes, patch_size=patch_size, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1, num_frames=num_frames, attention_type=attention_type, **kwargs)

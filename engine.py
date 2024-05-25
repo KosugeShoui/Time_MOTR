@@ -136,20 +136,15 @@ def train_one_epoch_mot(model: torch.nn.Module, criterion: torch.nn.Module,
         #print('image length = ',len(data_dict['imgs']))
         #[2,3,4,5]
         #入力画像データの確認
-        
-        if count == 0:
-            #print(count)
-            print('image length = ',len(data_dict['imgs']))
-            count = 1
-            """
-            for i in range(len(data_dict['imgs'])):
-                img_test = data_dict['imgs'][i].to('cpu').detach().numpy().copy()
-                #print(img_test.shape)
-                img_test = normalize_tensor(img_test.transpose(1,2,0))
-                plt.clf()
-                plt.imshow(img_test)
-                plt.savefig('img_data_ep{}_frame{}.png'.format(epoch+1,i))
-            """
+        """
+        for i in range(len(data_dict['imgs'])):
+            img_test = data_dict['imgs'][i].to('cpu').detach().numpy().copy()
+            #print(img_test.shape)
+            img_test = normalize_tensor(img_test.transpose(1,2,0))
+            plt.clf()
+            plt.imshow(img_test)
+            plt.savefig('img_data_ep{}_frame{}.png'.format(epoch+1,i))
+        """
         
         # out
         outputs = model(data_dict)

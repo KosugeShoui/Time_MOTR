@@ -1,5 +1,6 @@
 __pycache__/
 *.pth
+*pyth
 *.train
 models/ops
 exps/
@@ -11,9 +12,14 @@ data/*
 *.egg
 *.egg-info
 *.mp4
+
 attn_vis/
 multiscale_feature_map/
 input_images
 Time_MOTR/*.png
 weight/
+w_eval_attention/
+w_input_images/
+w_multiscale_feature_map/
 core
+w_output_video/
