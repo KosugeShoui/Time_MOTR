@@ -14,6 +14,8 @@ data/*
 *.mp4
 *.png
 
+!fig/*.png
+
 attn_vis/
 multiscale_feature_map/
 input_images
