@@ -7,8 +7,8 @@
 
 # for dance
 
- EXP_DIR=exps_dance/eval_test3
- python3 eval.py \
+ EXP_DIR=exps_dance/eval_test_0526
+ python3 eval_time.py \
      --meta_arch motr \
      --dataset_file e2e_joint \
      --epoch 200 \
@@ -16,7 +16,7 @@
      --lr_drop 100 \
      --lr 2e-4 \
      --lr_backbone 2e-5 \
-     --pretrained model_dance_final.pth \
+     --pretrained weight/model_dance_final.pth \
      --output_dir ${EXP_DIR} \
      --batch_size 1 \
      --sample_mode 'random_interval' \
@@ -32,4 +32,4 @@
      --extra_track_attn \
      --data_txt_path_train ./datasets/data_path/joint.train \
      --data_txt_path_val ./datasets/data_path/mot17.train \
-     --resume model_dance_final.pth
+     --resume weight/model_dance_final.pth

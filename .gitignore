@@ -12,6 +12,7 @@ data/*
 *.egg
 *.egg-info
 *.mp4
+*.png
 
 attn_vis/
 multiscale_feature_map/
@@ -19,6 +20,8 @@ input_images
 Time_MOTR/*.png
 weight/
 w_eval_attention/
+w_eval_attention_add/
+w_eval_attention_product/
 w_input_images/
 w_multiscale_feature_map/
 core

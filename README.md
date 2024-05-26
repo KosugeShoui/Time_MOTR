@@ -8,14 +8,14 @@
 
 </div>
 
-This repository is an official implementation of the paper [MOTR: End-to-End Multiple-Object Tracking with TRansformer](https://arxiv.org/pdf/2105.03247.pdf).
+This repository is an official implementation of the paper [TiME-MOTR: End-to-End Multiple-Object Tracking with TRansformer](https://arxiv.org/pdf/2105.03247.pdf).
 
 ## Introduction
 
 **TL; DR.** MOTR is a fully end-to-end multiple-object tracking framework based on Transformer. It directly outputs the tracks within the video sequences without any association procedures.
 
 <div style="align: center">
-<img src=./figs/motr.png/>
+<img src=./figs/time_motr.png/>
 </div>
 
 **Abstract.** The key challenge in multiple-object tracking task is temporal modeling of the object under track. Existing tracking-by-detection methods adopt simple heuristics, such as spatial or appearance similarity. Such methods, in spite of their commonality, are overly simple and lack the ability to learn temporal variations from data in an end-to-end manner.In this paper, we present MOTR, a fully end-to-end multiple-object tracking framework. It learns to model the long-range temporal variation of the objects. It performs temporal association implicitly and avoids previous explicit heuristics. Built upon DETR, MOTR introduces the concept of "track query". Each track query models the entire track of an object. It is transferred and updated frame-by-frame to perform iterative predictions in a seamless manner. Tracklet-aware label assignment is proposed for one-to-one assignment between track queries and object tracks. Temporal aggregation network together with collective average loss is further proposed to enhance the long-range temporal relation. Experimental results show that MOTR achieves competitive performance and can serve as a strong Transformer-based baseline for future research.

@@ -10,7 +10,7 @@
 # sh configs/r50_motr_train_eval_visem_small.sh
 
 PRETRAIN=r50_deformable_detr_plus_iterative_bbox_refinement-checkpoint.pth
-EXP_DIR=exps_visem/exp_0525_timeAttn_test_add
+EXP_DIR=exps_visem/exp_0522_timeAttn_test_product
 
 
 #evaluation phase

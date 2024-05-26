@@ -199,7 +199,10 @@ class DeformableTransformer(nn.Module):
     def normalize_tensor(self,tensor):
         min_val = np.min(tensor)
         max_val = np.max(tensor)
-        normalized_tensor = (tensor - min_val) / (max_val - min_val)
+        normalized_tensor_1 = (tensor - min_val) / (max_val - min_val)
+        
+        normalized_tensor = 1 - normalized_tensor_1
+        
         return normalized_tensor
     
 
@@ -265,34 +268,33 @@ class DeformableTransformer(nn.Module):
             time_memory_map = time_memory_map.permute(0, 1, 2, 3)
             #print('time memory = ', time_memory_map.shape)
             #print('src shape = ',src.shape)
-            time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
-            time_memory_map_sub = np.mean(time_memory_map_sub,axis=0)
-            #plt.imshow(time_memory_map_sub)
-            #plt.savefig('norm_resized_timeattn_{}.png'.format(lvl))
             
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
-            # Feature Map + Resized Attention Weight or F * Attention Weight
             src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
             src_sub = np.mean(src_sub,axis= 0)
-            #print(src_sub.shape)
-            
-            #plt.imshow(src_sub)
-            #plt.savefig('norm_src{}.png'.format(lvl))
-            #print(src.shape)
+            src_sub = self.normalize_tensor(src_sub)
             
             # Feature Map + Resized Attention Weight or F * Attention Weight
-            src = src + time_memory_map
-            #src_sub2 = src[0,:,:,:].to('cpu').detach().numpy().copy()
-            #src_sub2 = np.mean(src_sub2, axis= 0)
-            #src_sub2 = self.normalize_tensor(src_sub2)
+            # Feature Map + Resized Attention Weight or F * Attention Weight
+            src = src * time_memory_map
+            
+            
             
             #visualization
             #最も解像度が大きい特徴マップにのみ適応
-            """
             if lvl == 0:
-                save_path = 'w_eval_attention'
+                #visual data prepare
+                time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
+                time_memory_map_sub = np.mean(time_memory_map_sub,axis=0)
+                
+                #src_sub2 = src[0,:,:,:].to('cpu').detach().numpy().copy()
+                #src_sub2 = np.mean(src_sub2, axis= 0)
+                #rc_sub2 = self.normalize_tensor(src_sub2)
+                #print(src_sub2)
+                
+                save_path = 'w_eval_attention_product_dance'
                 os.makedirs(save_path,exist_ok=True)
                 
                 list_num = len(os.listdir(save_path))
@@ -313,11 +315,12 @@ class DeformableTransformer(nn.Module):
                 plt.savefig(save_path + '/src_notime{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
                 #3 timed src
                 #plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+                src_sub2 = src_sub + time_memory_map_sub
                 plt.imshow(src_sub2,cmap='viridis')
                 plt.axis('tight')
                 plt.axis('off')
                 plt.savefig(save_path + '/src_time{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
-            """
+            
 
             # end 
             src = src.flatten(2).transpose(1, 2)
