@@ -24,11 +24,9 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 ## Visualization
 
 
-https://github.com/KosugeShoui/Time_MOTR/assets/106908620/c5d96cfd-15b9-472a-a0aa-cc03acab9b64
 
 
-
-https://github.com/KosugeShoui/Time_MOTR/assets/106908620/20ad77bc-5f24-4f74-85fe-bfa5c9a4f8a6
+https://github.com/KosugeShoui/Time_MOTR/assets/106908620/cbe7631a-8f30-47e6-ba4a-7eda6aa87e83
 
 
 
