@@ -9,7 +9,7 @@
 </div>
 
 This repository is an official implementation of the paper [TiME-MOTR:]
-(https://arxiv.org/pdf/2105.03247.pdf).
+### paper URL ###
 
 ## Introduction
 
@@ -22,12 +22,9 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 **Abstract.** abst
 
 ## Updates
-- (2021/09/23) Report BDD100K results and release corresponding codes [motr_bdd100k](https://github.com/megvii-model/MOTR/tree/motr_bdd100k). 
-- (2022/02/09) Higher performance achieved by not clipping the bounding boxes inside the image.
-- (2022/02/11) Add checkpoint support for training on RTX 2080ti.
-- (2022/02/11) Report [DanceTrack](https://github.com/DanceTrack/DanceTrack) results and [scripts](configs/r50_motr_train_dance.sh).
-- (2022/05/12) Higher performance achieved by removing the public detection filtering (filter_pub_det) trick.
-- (2022/07/04) MOTR is accepted by ECCV 2022.
+- update log1
+- update log2
+- update log3
 
 ## Main Results
 

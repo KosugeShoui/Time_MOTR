@@ -10,7 +10,7 @@
 # sh configs/r50_motr_train_eval_visem_small.sh
 
 PRETRAIN=r50_deformable_detr_plus_iterative_bbox_refinement-checkpoint.pth
-EXP_DIR=exps_visem/exp_0527_timeAttn_test_add
+EXP_DIR=exps_visem/exp_0527_time_add_h_ep20
 
 
 python3 -m torch.distributed.launch \

@@ -286,7 +286,7 @@ class DeformableTransformer(nn.Module):
             
             # Feature Map + Resized Attention Weight or F * Attention Weight
             src = src + time_memory_map
-            print('src shape = ',src.shape)
+            #print('src shape = ',src.shape)
             
             
             """

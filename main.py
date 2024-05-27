@@ -207,7 +207,7 @@ def main(args):
     #print(model)
     model.to(device)
     #print(timesformer_model)
-    #timesformer_model.to(device)
+    timesformer_model.to(device)
 
     model_without_ddp = model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -360,6 +360,10 @@ def main(args):
         else:
             new_weight_dict = criterion.weight_dict
         
+        #train phase
+        
+        #train_stats = train_func(
+        #    model, timesformer, criterion, data_loader_train, optimizer, device, epoch,new_weight_dict, args.clip_max_norm)
         
         train_stats = train_func(
             model, criterion, data_loader_train, optimizer, device, epoch,new_weight_dict, args.clip_max_norm)

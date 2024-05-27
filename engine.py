@@ -126,7 +126,6 @@ def train_one_epoch_mot(model: torch.nn.Module, criterion: torch.nn.Module,
     header = '\n -------------- Epoch: [{}] ------------ \n'.format(epoch + 1)
     print_freq = 300
     
-    count = 0
 
     # for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
     for data_dict in metric_logger.log_every(data_loader, print_freq, header):
