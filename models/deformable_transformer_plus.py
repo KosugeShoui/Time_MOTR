@@ -196,12 +196,20 @@ class DeformableTransformer(nn.Module):
         valid_ratio = torch.stack([valid_ratio_w, valid_ratio_h], -1)
         return valid_ratio
     
-    def normalize_tensor(self,tensor):
+    def normalize_tensor_rev(self,tensor):
         min_val = np.min(tensor)
         max_val = np.max(tensor)
         normalized_tensor_1 = (tensor - min_val) / (max_val - min_val)
         
         normalized_tensor = 1 - normalized_tensor_1
+        
+        return normalized_tensor
+    
+    def normalize_tensor(self,tensor):
+        min_val = np.min(tensor)
+        max_val = np.max(tensor)
+        normalized_tensor = (tensor - min_val) / (max_val - min_val)
+        
         
         return normalized_tensor
     
@@ -272,29 +280,30 @@ class DeformableTransformer(nn.Module):
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
-            src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
-            src_sub = np.mean(src_sub,axis= 0)
-            src_sub = self.normalize_tensor(src_sub)
+            #src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
+            #src_sub = np.mean(src_sub,axis= 0)
+            #src_sub = self.normalize_tensor_rev(src_sub)
             
             # Feature Map + Resized Attention Weight or F * Attention Weight
-            # Feature Map + Resized Attention Weight or F * Attention Weight
-            src = src * time_memory_map
+            src = src + time_memory_map
+            print('src shape = ',src.shape)
             
             
-            
+            """
             #visualization
             #最も解像度が大きい特徴マップにのみ適応
             if lvl == 0:
                 #visual data prepare
                 time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
                 time_memory_map_sub = np.mean(time_memory_map_sub,axis=0)
+                #time_memory_map_sub = 1 - time_memory_map_sub
                 
                 #src_sub2 = src[0,:,:,:].to('cpu').detach().numpy().copy()
                 #src_sub2 = np.mean(src_sub2, axis= 0)
                 #rc_sub2 = self.normalize_tensor(src_sub2)
                 #print(src_sub2)
                 
-                save_path = 'w_eval_attention_product_dance'
+                save_path = 'w_eval_attention_add_visem2'
                 os.makedirs(save_path,exist_ok=True)
                 
                 list_num = len(os.listdir(save_path))
@@ -315,13 +324,20 @@ class DeformableTransformer(nn.Module):
                 plt.savefig(save_path + '/src_notime{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
                 #3 timed src
                 #plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-                src_sub2 = src_sub + time_memory_map_sub
+                #print('src_notime = ',src_sub)
+                #print('min max = ',np.min(src_sub),np.max(src_sub))
+                
+                src_sub2 = src_sub * time_memory_map_sub
+                src_sub2 = self.normalize_tensor(src_sub2)
+                
                 plt.imshow(src_sub2,cmap='viridis')
                 plt.axis('tight')
                 plt.axis('off')
                 plt.savefig(save_path + '/src_time{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
+                #print('src_time = ',src_sub2)
+                #print('min max = ',np.min(src_sub2),np.max(src_sub2))
             
-
+            """
             # end 
             src = src.flatten(2).transpose(1, 2)
             mask = mask.flatten(1)
