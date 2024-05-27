@@ -40,11 +40,6 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 | :--------: | :---------: | :------------: | :------: | :------: | :------: | :------: | :------: | :-----------------------------------------------------------------------------------------: |
 |    MOTR    | DanceTrack  |   DanceTrack   |   54.2   |   73.5   |   40.2   |   79.7   |   51.5   | [model](https://drive.google.com/file/d/1zs5o1oK8diafVfewRl3heSVQ7-XAty3J/view?usp=sharing) |
 
-### BDD100K
-
-| **Method** | **Dataset** | **Train Data** | **MOTA** | **IDF1** | **IDS** |                                           **URL**                                           |
-| :--------: | :---------: | :------------: | :------: | :------: | :-----: | :-----------------------------------------------------------------------------------------: |
-|    MOTR    |   BDD100K   |    BDD100K     |   32.0   |   43.5   |  3493   | [model](https://drive.google.com/file/d/13fsTj9e6Hk7qVcybWi1X5KbZEsFCHa6e/view?usp=sharing) |
 
 *Note:*
 
@@ -207,13 +202,10 @@ python3 demo.py \
     --input_video figs/demo.avi
 ```
 
-## Citing MOTR
+## Citing TiME-MOTR
 If you find MOTR useful in your research, please consider citing:
 ```bibtex
-@inproceedings{zeng2021motr,
-  title={MOTR: End-to-End Multiple-Object Tracking with TRansformer},
-  author={Zeng, Fangao and Dong, Bin and Zhang, Yuang and Wang, Tiancai and Zhang, Xiangyu and Wei, Yichen},
-  booktitle={European Conference on Computer Vision (ECCV)},
+@inproceedings{memo
   year={2022}
 }
 ```
