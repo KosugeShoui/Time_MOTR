@@ -48,13 +48,19 @@ https://github.com/KosugeShoui/Time_MOTR/assets/106908620/10c001ae-cfb5-4c67-b7f
 
 | **Method** | **Dataset** |    **Train Data**    | **HOTA** | **DetA** | **AssA** | **MOTA** | **IDF1** | **IDS** |                                           **URL**                                           |
 | :--------: | :---------: | :------------------: | :------: | :------: | :------: | :------: | :------: | :-----: | :-----------------------------------------------------------------------------------------: |
-|    MOTR    |    MOT17    | MOT17+CrowdHuman Val |   57.8   |   60.3   |   55.7   |   73.4   |   68.6   |  2439   | [model](https://drive.google.com/file/d/1K9AbtzTCBNsOD8LYA1k16kf4X0uJi8PC/view?usp=sharing) |
+|    TiME-MOTR    |    MOT17    | MOT17+CrowdHuman Val |   x   |   x   |   x   |   x   |   x   |  x   | [model](https://drive.google.com/file/d/1K9AbtzTCBNsOD8LYA1k16kf4X0uJi8PC/view?usp=sharing) |
 
 ### DanceTrack
 
 | **Method** | **Dataset** | **Train Data** | **HOTA** | **DetA** | **AssA** | **MOTA** | **IDF1** |                                           **URL**                                           |
 | :--------: | :---------: | :------------: | :------: | :------: | :------: | :------: | :------: | :-----------------------------------------------------------------------------------------: |
-|    MOTR    | DanceTrack  |   DanceTrack   |   54.2   |   73.5   |   40.2   |   79.7   |   51.5   | [model](https://drive.google.com/file/d/1zs5o1oK8diafVfewRl3heSVQ7-XAty3J/view?usp=sharing) |
+|    TiME-MOTR    | DanceTrack  |   DanceTrack   |   x   |   x   |   x   |   x   |   x   | [model](https://drive.google.com/file/d/1zs5o1oK8diafVfewRl3heSVQ7-XAty3J/view?usp=sharing) |
+
+### VISEM-Tracking
+
+| **Method** | **Dataset** | **Train Data** | **HOTA** | **DetA** | **AssA** | **MOTA** | **IDF1** |                                           **URL**                                           |
+| :--------: | :---------: | :------------: | :------: | :------: | :------: | :------: | :------: | :-----------------------------------------------------------------------------------------: |
+|    TiME-MOTR    | VISEM  |   VISEM   |   x   |   x   |   x   |   x   |   x   | [model](https://drive.google.com/file/d/1zs5o1oK8diafVfewRl3heSVQ7-XAty3J/view?usp=sharing) |
 
 
 *Note:*
