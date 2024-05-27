@@ -23,7 +23,13 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 
 ## Visualization
 
+Tracking Results & Attention Weight
+
 https://github.com/KosugeShoui/Time_MOTR/assets/106908620/8136c140-9a7f-4cb4-bd33-39a201b8b61f
+
+
+
+https://github.com/KosugeShoui/Time_MOTR/assets/106908620/10c001ae-cfb5-4c67-b7ff-533d2edddf76
 
 
 
