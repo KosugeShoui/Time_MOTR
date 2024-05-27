@@ -21,6 +21,17 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 
 **Abstract.** abst
 
+## Visualization
+
+
+https://github.com/KosugeShoui/Time_MOTR/assets/106908620/c5d96cfd-15b9-472a-a0aa-cc03acab9b64
+
+
+
+https://github.com/KosugeShoui/Time_MOTR/assets/106908620/20ad77bc-5f24-4f74-85fe-bfa5c9a4f8a6
+
+
+
 ## Updates
 - update log1
 - update log2
