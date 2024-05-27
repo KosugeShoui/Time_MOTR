@@ -206,6 +206,6 @@ python3 demo.py \
 If you find MOTR useful in your research, please consider citing:
 ```bibtex
 @inproceedings{memo
-  year={2022}
+  year={2024}
 }
 ```
