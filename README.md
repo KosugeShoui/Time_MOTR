@@ -16,7 +16,7 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 **TL; DR.** TiME-MOTR is a fully end-to-end multiple-object tracking framework based on Transformer. It directly outputs the tracks within the video sequences without any association procedures.
 
 <div style="align: center">
-<img src=./figs/time_motr.png/>
+<img src=./figs/timemotr.png/>
 </div>
 
 **Abstract.** abst

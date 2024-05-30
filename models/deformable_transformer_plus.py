@@ -213,6 +213,11 @@ class DeformableTransformer(nn.Module):
         
         return normalized_tensor
     
+    # AttentionWeightにおいて、閾値処理する関数
+    def threshold_array(self,arr, threshold):
+        arr[arr <= threshold] = 0
+        return arr
+    
 
     # 14x14の次元を正規化する関数
     def normalize_14x14(self,tensor):
@@ -250,28 +255,22 @@ class DeformableTransformer(nn.Module):
             src_shape_list.append([h , w])
             #multi-scale feature map
             #torch.Size([1, 256, 112, 132])
-            """
-            if 10 <= h <= 20 :
-                f_map = src[0,0:3,:]
-                f_map = f_map.to('cpu').detach().numpy().copy()
-                f_map = f_map.transpose(1,2,0)
-                print(f_map.shape)
-                f_map = self.normalize_tensor(f_map)
-                plt.clf()
-                plt.imshow(f_map)
-                plt.savefig('f_map_h={}.png'.format(h))
-            """
-            #torch.Size([1, 256, 56, 66])
-            #torch.Size([1, 256, 28, 33])
-            #torch.Size([1, 256, 14, 17])
-            
-            
             
             #attentionweightを変形
             time_memory_map = time_memory.view(1,14,14,256)
             time_memory_map = self.tensor_norm.normalize_14x14(time_memory_map)
-            #特徴マップのサイズにリサイズ
-            #time_memory_map.requires_grad_(False)
+            
+            #Attention Weight Threshold [0.3.0.5.0.7]
+            time_memory_map = self.threshold_array(time_memory_map,0.5)
+            #print(time_memory_map)
+            
+            #time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
+            #time_memory_map_sub = np.mean(time_memory_map_sub,axis=2)
+            #time_memory_map_sub = self.threshold_array(time_memory_map_sub,0.5)
+            #plt.imshow(time_memory_map_sub)
+            #plt.savefig('w_timeAttnmap.png')
+            
+            
             time_memory_map = F.interpolate(time_memory_map.permute(0, 3, 1, 2), size=(h, w), mode='bilinear', align_corners=False)
             time_memory_map = time_memory_map.permute(0, 1, 2, 3)
             #print('time memory = ', time_memory_map.shape)
@@ -280,6 +279,7 @@ class DeformableTransformer(nn.Module):
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
+            # Visualization Attention Weight
             #src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
             #src_sub = np.mean(src_sub,axis= 0)
             #src_sub = self.normalize_tensor_rev(src_sub)
@@ -405,16 +405,6 @@ class DeformableTransformer(nn.Module):
         #print(hs.shape)
         #print(hs[0,0,:,0].shape) # --. (303)
         #print(inter_references.shape)
-        """
-        frame_num = 0
-        if hs[0,0,:,0].size(0) >= 301: #検出物体が存在する場合は300以上
-            max_num = hs[0,0,:,0].size(0)
-            for num,i in enumerate(hs[0,0,:]):
-                ##print(i.shape)
-                #print(i)
-                if num >= 300 :
-                    visualize(num+1,i,frame_num)
-        """
                 
 
         inter_references_out = inter_references
