@@ -376,11 +376,11 @@ def _get_clones(module, N):
 
 
 class TimeSformer_getattn(nn.Module):
-    def __init__(self):
+    def __init__(self,pretrained_model):
         super().__init__()
 
         self.backbone = TimeSformer(img_size=224, num_classes=1000, num_frames=2, 
-                                    attention_type='divided_space_time',  pretrained_model='TimeSformer_divST_8_224_SSv2.pyth')
+                                    attention_type='divided_space_time',  pretrained_model=pretrained_model)
         self.backbone_output_dim = 768
     
     def forward(self, x):
@@ -402,6 +402,9 @@ class TimeSformer_getattn(nn.Module):
         #print('time attn = ',features.shape)
         #[1,392,768]
         #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
+        self.output_dim = 1000
+        
+        self.head = nn.Linear(self.backbone_output_dim, self.output_dim, bias=True)
 
         return features
 
@@ -848,7 +851,9 @@ def build(args):
     backbone = build_backbone(args)
     
     #timesformer instances
-    times_model = TimeSformer_getattn()
+    pretrained_model = './weight_vit/vit_tiny_patch16_224_augreg_in21k.pth'
+    times_model = TimeSformer_getattn(pretrained_model)
+    
     #timesformer 導入
     transformer = build_deforamble_transformer(args,times_model)
     d_model = transformer.d_model

@@ -17,7 +17,8 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 <img src=./figs/timemotr.png/>
 </div>
 
-**Abstract.** abst
+**Abstract.** 
+-- abst
 
 ## Visualization
 
@@ -72,8 +73,8 @@ https://github.com/KosugeShoui/Time_MOTR/assets/106908620/10c001ae-cfb5-4c67-b7f
 ## Installation
 
 The codebase is built on top of [Deformable DETR](https://github.com/fundamentalvision/Deformable-DETR).
-The codebase is built on top of [MOTR](https://github.com/fundamentalvision/Deformable-DETR).
-The codebase is built on top of [TimeSformer](https://github.com/fundamentalvision/Deformable-DETR).
+The codebase is built on top of [MOTR](https://github.com/megvii-research/MOTR).
+The codebase is built on top of [TimeSformer](https://github.com/facebookresearch/TimeSformer).
 
 ### Requirements
 
@@ -116,6 +117,9 @@ The codebase is built on top of [TimeSformer](https://github.com/fundamentalvisi
 
 ```
 .
+├── visem
+│   │
+│   │
 ├── crowdhuman
 │   ├── images
 │   └── labels_with_ids

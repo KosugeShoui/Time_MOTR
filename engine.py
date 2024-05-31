@@ -114,10 +114,13 @@ def normalize_tensor(tensor):
     return normalized_tensor
 
 
-def train_one_epoch_mot(model: torch.nn.Module, criterion: torch.nn.Module,
-                    data_loader: Iterable, optimizer: torch.optim.Optimizer,
+def train_one_epoch_mot(model: torch.nn.Module, timesformer : torch.nn.Module,criterion: torch.nn.Module,
+                    data_loader: Iterable, optimizer: torch.optim.Optimizer,optimizer_time : torch.optim.Optimizer,
                     device: torch.device, epoch: int, new_weight_dict : dict, max_norm: float = 0):
+    # train phase
     model.train()
+    #timesformer.train()
+    # criterion
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -170,8 +173,12 @@ def train_one_epoch_mot(model: torch.nn.Module, criterion: torch.nn.Module,
             print(loss_dict_reduced)
             sys.exit(1)
 
+        # optimizer set
         optimizer.zero_grad()
+        
+        # backward
         losses.backward()
+        
         if max_norm > 0:
             grad_total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         else:

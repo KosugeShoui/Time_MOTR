@@ -189,7 +189,7 @@ def get_args_parser():
 
 def main(args):
     utils.init_distributed_mode(args)
-    print("git:\n  {}\n".format(utils.get_sha()))
+    #print("git:\n  {}\n".format(utils.get_sha()))
 
     if args.frozen_weights is not None:
         assert args.masks, "Frozen training is meant for segmentation only"
@@ -207,13 +207,13 @@ def main(args):
     #print(model)
     model.to(device)
     #print(timesformer_model)
-    timesformer_model.to(device)
+    #timesformer_model.to(device)
 
     model_without_ddp = model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    times_parameters = sum(p.numel() for p in timesformer_model.parameters() if p.requires_grad)
-    print('number of params:', n_parameters)
-    print('times model number of params:', times_parameters)
+    #times_parameters = sum(p.numel() for p in timesformer_model.parameters() if p.requires_grad)
+    print('\n number of params:', n_parameters)
+    #print('times model number of params:', times_parameters)
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
@@ -272,6 +272,10 @@ def main(args):
     else:
         optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                       weight_decay=args.weight_decay)
+        
+        # timesformer model optimizer build
+        optimizer_time = torch.optim.AdamW(timesformer_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     if args.distributed:
@@ -293,6 +297,7 @@ def main(args):
         model_without_ddp = load_model(model_without_ddp, args.pretrained)
 
     output_dir = Path(args.output_dir)
+    
     if args.resume:
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
@@ -330,7 +335,7 @@ def main(args):
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
         return
 
-    print("Start training")
+    print("--------------- Start training ---------------\n")
     start_time = time.time()
 
     train_func = train_one_epoch
@@ -341,6 +346,13 @@ def main(args):
     
     # ベストepochのためのloss_dictの定義
     loss_list = []
+    
+    # TimesformerのWeightが更新されているか確認
+    #initial_params = {name: param.clone() for name, param in timesformer_model.named_parameters()}
+    #print(initial_params.keys())
+    # TiME-MOTRのWeightが更新されているか確認
+    initial_params = {name: param.clone() for name, param in model.named_parameters()}
+    #print(initial_params.keys())
     
     for epoch in tqdm(range(args.start_epoch, args.epochs)):
         
@@ -365,10 +377,21 @@ def main(args):
         #train_stats = train_func(
         #    model, timesformer, criterion, data_loader_train, optimizer, device, epoch,new_weight_dict, args.clip_max_norm)
         
+        # input timesformer train phase
         train_stats = train_func(
-            model, criterion, data_loader_train, optimizer, device, epoch,new_weight_dict, args.clip_max_norm)
+            model, timesformer_model, criterion, data_loader_train, optimizer, optimizer_time,  device, epoch,new_weight_dict, args.clip_max_norm)
         
         lr_scheduler.step()
+        
+        # 更新後のパラメータを保存
+        updated_params = {name: param.clone() for name, param in model.named_parameters()}
+        # パラメータが更新されたかどうかを確認
+        for name in initial_params:
+            if not torch.equal(initial_params[name], updated_params[name]):
+                print(f"Parameter '{name}' has been updated.")
+            else:
+                print(f"Parameter '{name}' has not been updated.")
+        
         
         #training log save
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
@@ -404,12 +427,7 @@ def main(args):
                 else:
                     print('\nbest weight no update\n')
                     
-                    
-            # extra checkpoint before LR drop and every 5 epochs
-            #if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % args.save_period == 0 or (((args.epochs >= 100 and (epoch + 1) > 100) or args.epochs < 100) and (epoch + 1) % 5 == 0):
-                #checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
             if path_flag :
-                print('flag = True , saving weight')
                 for checkpoint_path in checkpoint_paths:
                     utils.save_on_master({
                         'model': model_without_ddp.state_dict(),

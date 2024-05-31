@@ -32,37 +32,6 @@ from timesformer.models.vit import TimeSformer
 import os
 import cv2
 
-"""
-class TimeSformer_getattn(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-        self.backbone = TimeSformer(img_size=224, num_classes=0, num_frames=2, 
-                                    attention_type='divided_space_time',  pretrained_model='')
-        self.backbone_output_dim = 768
-    
-    def forward(self, x):
-        # xの形状は [batch_size, num_frames, channels, height, width]
-        
-        batch_size, channels, num_frames, height, width = x.shape
-        #print('channel , height , width = ',channels, height, width)
-        assert channels == 3 and height == 224 and width == 224, \
-            "Input shape must be [batch_size, 3 , num_frames , 224, 224]"
-
-        # TimeSformerに渡すためにテンソルの形状を変更
-        #x = x.view(batch_size, num_frames, height, width, channels)  # [batch_size, num_frames, height, width, channels]
-        #x = x.permute(0, 4, 1, 2, 3)  # [batch_size, channels, num_frames, height, width]
-        #print(x.shape)
-
-        # TimeSformerモデルに入力
-        cls_token, features = self.backbone(x)
-        # 特徴量を [1, 3, 256] に変形
-        #print('time attn = ',features.shape)
-        #[1,392,768]
-        #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
-
-        return features
-"""
 
 class Normalizer:
     def normalize_14x14(self, tensor):
@@ -117,6 +86,9 @@ class DeformableTransformer(nn.Module):
         self.time_attn = timesformer
         #print(self.time_attn)
         self.tensor_norm = Normalizer()
+        
+        #Vit Layer
+        self.out_extent = nn.Linear(192,256)
         #model see
 
         if two_stage:
@@ -253,7 +225,11 @@ class DeformableTransformer(nn.Module):
         #print(time_frame.shape)
         time_memory = self.time_attn(time_frame)
         time_memory = time_memory[:,::2,:]
-        time_memory = time_memory.view(1, 196, 256, 3).mean(dim=-1)
+        #time_memory = time_memory.view(1, 196, 256, 3).mean(dim=-1)
+        # ViT out 192 --> 256
+        time_memory = self.out_extent(time_memory)
+        #print(time_memory.shape)
+        
         
         for lvl, (src, mask, pos_embed) in enumerate(zip(srcs, masks, pos_embeds)):
             bs, c, h, w = src.shape
@@ -265,14 +241,14 @@ class DeformableTransformer(nn.Module):
             time_memory_map_sub = time_memory_map
             
             # Attention Weight Threshold [0.3.0.5.0.7]
-            #time_memory_map = self.threshold_array(time_memory_map,0.5)
+            #time_memory_map = self.threshold_array(time_memory_map,0.3)
             
             time_memory_map = F.interpolate(time_memory_map.permute(0, 3, 1, 2), size=(h, w), mode='bilinear', align_corners=False)
             time_memory_map = time_memory_map.permute(0, 1, 2, 3)
             # Scaling for src matching time_memory_map
             #time_memory_map = self.scale_tensor(time_memory_map, -1 , 1)
 
-            
+            """
             if lvl == 0:
                 # Visualization Attention Weight
                 src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
@@ -293,8 +269,8 @@ class DeformableTransformer(nn.Module):
                 #time_memory_map_sub = self.scale_tensor(time_memory_map_sub, min , max)
                 plt.imshow(time_memory_map_sub,cmap='jet')
                 plt.savefig('w_timeAttnmap.png')
+            """
             
-                
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
