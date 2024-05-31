@@ -10,7 +10,7 @@
 # sh configs/r50_motr_train_eval_visem_small.sh
 
 PRETRAIN=r50_deformable_detr_plus_iterative_bbox_refinement-checkpoint.pth
-EXP_DIR=exps_visem/exp_0530_time_add_h_thres0.5_ep20
+EXP_DIR=exps_visem/exp_0601_time_add_h_ep20_re
 
 
 python3 -m torch.distributed.launch \
@@ -34,7 +34,6 @@ python3 -m torch.distributed.launch \
     --pretrained ${PRETRAIN} \
     #--loss_schedule \
     #--giou_loss_coef 4 --final_weight 1 \
-    #sampler_steps 5 9 15
    
     #| tee ${EXP_DIR}/output.log
 

@@ -742,16 +742,11 @@ class MOTR(nn.Module):
         
         for frame_index, frame in enumerate(frames):
             count += 1
-            #print(frame.shape,type(frame))
-            #[3,height,width]
-            #print('frame index = ',frame_index)
             #input frme num --> [2,3,4,5]
             frame.requires_grad = False
             is_last = frame_index == len(frames) - 1
                             
             #Timesformer用の入力画像の準備
-            # 画像テンソルを [3, h, w] から [3, 224, 224] にリサイズ
-            #print(frame.shape)
             if frame_index == 0:
                 frame_tensor_time1 = F.interpolate(frame.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
                 frame_tensor_time2 = F.interpolate(frames[1].unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)

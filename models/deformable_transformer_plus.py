@@ -27,9 +27,10 @@ import matplotlib.pyplot as plt
 
 #from attn_vis import visualize
 import numpy as np
-
+from scipy.ndimage import zoom
 from timesformer.models.vit import TimeSformer
 import os
+import cv2
 
 """
 class TimeSformer_getattn(nn.Module):
@@ -200,7 +201,6 @@ class DeformableTransformer(nn.Module):
         min_val = np.min(tensor)
         max_val = np.max(tensor)
         normalized_tensor_1 = (tensor - min_val) / (max_val - min_val)
-        
         normalized_tensor = 1 - normalized_tensor_1
         
         return normalized_tensor
@@ -221,13 +221,19 @@ class DeformableTransformer(nn.Module):
 
     # 14x14の次元を正規化する関数
     def normalize_14x14(self,tensor):
-        # チャネルの次元を分離
         for c in range(tensor.shape[-1]):
-            # それぞれのチャネルに対して正規化を行う
             min_val = tensor[:, :, :, c].min()
             max_val = tensor[:, :, :, c].max()
             tensor[:, :, :, c] = (tensor[:, :, :, c] - min_val) / (max_val - min_val)
         return tensor
+    
+    def scale_tensor(self,tensor, min_val, max_val):
+        # テンソルの最小値と最大値を取得
+        tensor_min = tensor.min()
+        tensor_max = tensor.max()
+        scaled_tensor = (tensor - tensor_min) / (tensor_max - tensor_min) * (max_val - min_val) + min_val
+        
+        return scaled_tensor
 
     
     #---> from self.transformer
@@ -241,52 +247,68 @@ class DeformableTransformer(nn.Module):
         spatial_shapes = []
         src_shape_list = []
         
-        # Timeformer class --> ここにtimesformerからのAttentionの機構を導入したい
-        #print('time frames = ',time_frame.shape)
+        # Timeformer class
+        #print('time frame = ',time_frame.shape)
         #[1,3,2,224,224]
         #print(time_frame.shape)
         time_memory = self.time_attn(time_frame)
         time_memory = time_memory[:,::2,:]
-        #チャネル方向の平均を取る
         time_memory = time_memory.view(1, 196, 256, 3).mean(dim=-1)
         
         for lvl, (src, mask, pos_embed) in enumerate(zip(srcs, masks, pos_embeds)):
             bs, c, h, w = src.shape
             src_shape_list.append([h , w])
-            #multi-scale feature map
-            #torch.Size([1, 256, 112, 132])
             
-            #attentionweightを変形
+            # attentionweightを変形、チャネル方向の正規化
             time_memory_map = time_memory.view(1,14,14,256)
             time_memory_map = self.tensor_norm.normalize_14x14(time_memory_map)
+            time_memory_map_sub = time_memory_map
             
-            #Attention Weight Threshold [0.3.0.5.0.7]
-            time_memory_map = self.threshold_array(time_memory_map,0.5)
-            #print(time_memory_map)
-            
-            #time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
-            #time_memory_map_sub = np.mean(time_memory_map_sub,axis=2)
-            #time_memory_map_sub = self.threshold_array(time_memory_map_sub,0.5)
-            #plt.imshow(time_memory_map_sub)
-            #plt.savefig('w_timeAttnmap.png')
-            
+            # Attention Weight Threshold [0.3.0.5.0.7]
+            #time_memory_map = self.threshold_array(time_memory_map,0.5)
             
             time_memory_map = F.interpolate(time_memory_map.permute(0, 3, 1, 2), size=(h, w), mode='bilinear', align_corners=False)
             time_memory_map = time_memory_map.permute(0, 1, 2, 3)
-            #print('time memory = ', time_memory_map.shape)
-            #print('src shape = ',src.shape)
+            # Scaling for src matching time_memory_map
+            #time_memory_map = self.scale_tensor(time_memory_map, -1 , 1)
+
             
+            if lvl == 0:
+                # Visualization Attention Weight
+                src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
+                src_sub = np.mean(src_sub[:,:,:],axis= 0)
+                max , min = np.max(src_sub) , np.min(src_sub)
+                src_sub = self.normalize_tensor_rev(src_sub)
+                plt.imshow(src_sub,cmap='jet')
+                plt.savefig('w_featuremap.png')
+                
+                time_memory_map_sub = time_memory_map[0,:,:,:].to('cpu').detach().numpy().copy()
+                time_memory_map_sub = self.normalize_tensor(np.mean(time_memory_map_sub,axis=0))
+                
+                #identity_matrix = np.eye(14)
+                #time_memory_map_sub = self.normalize_tensor(time_memory_map_sub + identity_matrix)
+                #time_memory_map_sub =  cv2.resize(time_memory_map_sub, (w, h), interpolation=cv2.INTER_LINEAR)
+                #print(time_memory_map_sub.shape)
+                
+                #time_memory_map_sub = self.scale_tensor(time_memory_map_sub, min , max)
+                plt.imshow(time_memory_map_sub,cmap='jet')
+                plt.savefig('w_timeAttnmap.png')
+            
+                
             spatial_shape = (h, w)
             spatial_shapes.append(spatial_shape)
             
-            # Visualization Attention Weight
-            #src_sub = src[0,:,:,:].to('cpu').detach().numpy().copy()
-            #src_sub = np.mean(src_sub,axis= 0)
-            #src_sub = self.normalize_tensor_rev(src_sub)
-            
             # Feature Map + Resized Attention Weight or F * Attention Weight
-            src = src + time_memory_map
-            #print('src shape = ',src.shape)
+            src = src  -  time_memory_map
+            
+            """
+            if lvl == 0:
+                src_sub2 = src[0,:,:,:].to('cpu').detach().numpy().copy()
+                src_sub2 = np.mean(src_sub2[:,:,:],axis=0)
+                src_sub2 = self.normalize_tensor_rev(src_sub2)
+                plt.imshow(src_sub2,cmap='jet')
+                plt.savefig('w_weightedmap.png')
+            """
             
             
             """
@@ -311,14 +333,14 @@ class DeformableTransformer(nn.Module):
                 
                 plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
                 #1 time memory
-                plt.imshow(time_memory_map_sub,cmap='viridis')
+                plt.imshow(time_memory_map_sub,cmap='jet')
                 plt.axis('tight')
                 plt.axis('off')
                 plt.savefig(save_path + '/time_weight_{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
                 
                 #2 normal src
                 #plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-                plt.imshow(src_sub,cmap='viridis')
+                plt.imshow(src_sub,cmap='jet')
                 plt.axis('tight')
                 plt.axis('off')
                 plt.savefig(save_path + '/src_notime{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
@@ -330,7 +352,7 @@ class DeformableTransformer(nn.Module):
                 src_sub2 = src_sub * time_memory_map_sub
                 src_sub2 = self.normalize_tensor(src_sub2)
                 
-                plt.imshow(src_sub2,cmap='viridis')
+                plt.imshow(src_sub2,cmap='jet')
                 plt.axis('tight')
                 plt.axis('off')
                 plt.savefig(save_path + '/src_time{}.png'.format(save_num),bbox_inches='tight',pad_inches=0)
