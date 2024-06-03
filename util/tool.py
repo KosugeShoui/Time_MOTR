@@ -11,21 +11,32 @@
 import torch
 import numpy as np
 
+def remove_time_substring(input_string):
+    return input_string.replace("times_model","transformer.time_attn")
+
 
 def load_model(model, model_path, optimizer=None, resume=False,
                lr=None, lr_step=None):
     start_epoch = 0
     checkpoint = torch.load(model_path, map_location=lambda storage, loc: storage)
-    print(f'loaded {model_path}')
+    print(f'loaded {model_path}\n')
     state_dict = checkpoint['model']
     model_state_dict = model.state_dict()
+    #for name, _ in model.state_dict().items():
+        #print(name)
 
     # check loaded parameters and created model parameters
     msg = 'If you see this, your model does not fully load the ' + \
           'pre-trained weight. Please make sure ' + \
           'you set the correct --num_classes for your own dataset.'
+          
     for k in state_dict:
+        if 'time' in k:
+            #print(k)
+            k = remove_time_substring(k)
+
         if k in model_state_dict:
+            #print('exist arci = ',k)
             if state_dict[k].shape != model_state_dict[k].shape:
                 print('Skip loading parameter {}, required shape{}, ' \
                       'loaded shape{}. {}'.format(
@@ -43,7 +54,9 @@ def load_model(model, model_path, optimizer=None, resume=False,
                     continue
                 state_dict[k] = model_state_dict[k]
         else:
-            print('Drop parameter {}.'.format(k) + msg)
+            #print('nothing archi = ',k)
+            #print('')
+            print('Drop parameter {}.'.format(k))
     for k in model_state_dict:
         if not (k in state_dict):
             print('No param {}.'.format(k) + msg)

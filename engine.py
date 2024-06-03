@@ -133,10 +133,7 @@ def train_one_epoch_mot(model: torch.nn.Module, timesformer : torch.nn.Module,cr
     # for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
     for data_dict in metric_logger.log_every(data_loader, print_freq, header):
         data_dict = data_dict_to_cuda(data_dict, device)
-        #print(data_dict['imgs'][0]) --> img
-        #print(len(data_dict['imgs']))
-        #print('image length = ',len(data_dict['imgs']))
-        #[2,3,4,5]
+    
         #入力画像データの確認
         """
         for i in range(len(data_dict['imgs'])):

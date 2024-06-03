@@ -87,8 +87,8 @@ class DeformableTransformer(nn.Module):
         #print(self.time_attn)
         self.tensor_norm = Normalizer()
         
-        #Vit Layer
-        self.out_extent = nn.Linear(192,256)
+        #Vit Layer (embedded dimension)
+        self.out_extent = nn.Linear(768,256)
         #model see
 
         if two_stage:
@@ -226,7 +226,7 @@ class DeformableTransformer(nn.Module):
         time_memory = self.time_attn(time_frame)
         time_memory = time_memory[:,::2,:]
         #time_memory = time_memory.view(1, 196, 256, 3).mean(dim=-1)
-        # ViT out 192 --> 256
+        # ViT out (192,392,768) embedded dim  --> 256
         time_memory = self.out_extent(time_memory)
         #print(time_memory.shape)
         

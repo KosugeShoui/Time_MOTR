@@ -434,10 +434,15 @@ if __name__ == '__main__':
 
     # load model and weights
     detr, _, _ ,timesformer = build_model(args)
+    #for name, _ in detr.state_dict().items():
+        #print('MOTR Arch = ',name)
     checkpoint = torch.load(args.resume, map_location='cpu')
     detr = load_model(detr, args.resume)
+    #for name, _ in detr.state_dict().items():
+        #print(name)
     detr = detr.cuda()
     detr.eval()
+    #timesformer.eval()
     #validation data folder names
     val_path = args.mot_path + '/visem/val'
     seq_nums = os.listdir(val_path)

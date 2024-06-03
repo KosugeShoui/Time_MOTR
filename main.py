@@ -211,10 +211,10 @@ def main(args):
 
     model_without_ddp = model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    #times_parameters = sum(p.numel() for p in timesformer_model.parameters() if p.requires_grad)
     print('\n number of params:', n_parameters)
-    #print('times model number of params:', times_parameters)
-
+    #for name, _ in model.state_dict().items():
+        #print(name)
+    
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)
 
@@ -279,6 +279,7 @@ def main(args):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
 
     if args.distributed:
+        print('Multi - GPU - Util = True\n')
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module
 
@@ -290,15 +291,18 @@ def main(args):
         base_ds = get_coco_api_from_dataset(dataset_val)
 
     if args.frozen_weights is not None:
+        print('frozen Weight = True \n')
         checkpoint = torch.load(args.frozen_weights, map_location='cpu')
         model_without_ddp.detr.load_state_dict(checkpoint['model'])
 
     if args.pretrained is not None:
+        print('MOTR Pretrained = True\n')
         model_without_ddp = load_model(model_without_ddp, args.pretrained)
 
     output_dir = Path(args.output_dir)
     
     if args.resume:
+        print('resume = True\n')
         if args.resume.startswith('https'):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.resume, map_location='cpu', check_hash=True)
@@ -351,7 +355,7 @@ def main(args):
     #initial_params = {name: param.clone() for name, param in timesformer_model.named_parameters()}
     #print(initial_params.keys())
     # TiME-MOTRのWeightが更新されているか確認
-    initial_params = {name: param.clone() for name, param in model.named_parameters()}
+    #initial_params = {name: param.clone() for name, param in model.named_parameters()}
     #print(initial_params.keys())
     
     for epoch in tqdm(range(args.start_epoch, args.epochs)):
@@ -386,11 +390,11 @@ def main(args):
         # 更新後のパラメータを保存
         updated_params = {name: param.clone() for name, param in model.named_parameters()}
         # パラメータが更新されたかどうかを確認
-        for name in initial_params:
-            if not torch.equal(initial_params[name], updated_params[name]):
-                print(f"Parameter '{name}' has been updated.")
-            else:
-                print(f"Parameter '{name}' has not been updated.")
+        #for name in initial_params:
+            #if not torch.equal(initial_params[name], updated_params[name]):
+             #   print(f"Parameter '{name}' has been updated.")
+            #else:
+             #   print(f"Parameter '{name}' has not been updated.")
         
         
         #training log save

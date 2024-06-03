@@ -387,14 +387,9 @@ class TimeSformer_getattn(nn.Module):
         # xの形状は [batch_size, num_frames, channels, height, width]
         
         batch_size, channels, num_frames, height, width = x.shape
-        #print('channel , height , width = ',channels, height, width)
         assert channels == 3 and height == 224 and width == 224, \
             "Input shape must be [batch_size, 3 , num_frames , 224, 224]"
 
-        # TimeSformerに渡すためにテンソルの形状を変更
-        #x = x.view(batch_size, num_frames, height, width, channels)  # [batch_size, num_frames, height, width, channels]
-        #x = x.permute(0, 4, 1, 2, 3)  # [batch_size, channels, num_frames, height, width]
-        #print(x.shape)
 
         # TimeSformerモデルに入力
         cls_token, features = self.backbone(x)
@@ -403,7 +398,6 @@ class TimeSformer_getattn(nn.Module):
         #[1,392,768]
         #features = features.view(batch_size, 3, 256)  # [batch_size, 3, 256]
         self.output_dim = 1000
-        
         self.head = nn.Linear(self.backbone_output_dim, self.output_dim, bias=True)
 
         return features
@@ -411,8 +405,6 @@ class TimeSformer_getattn(nn.Module):
 
 
 class MOTR(nn.Module):
-    #times model definition
-    #times_model = None
     
     def __init__(self, backbone, transformer, num_classes, num_queries, num_feature_levels, criterion, track_embed,
                  aux_loss=True, with_box_refine=False, two_stage=False, memory_bank=None, use_checkpoint=False):
@@ -851,7 +843,8 @@ def build(args):
     backbone = build_backbone(args)
     
     #timesformer instances
-    pretrained_model = './weight_vit/vit_tiny_patch16_224_augreg_in21k.pth'
+    #pretrained_model = './weight_vit/vit_small_patch16_224_augreg_in21k.pth'
+    pretrained_model = './weight_vit/TimeSformer_divST_8_224_SSv2.pyth'
     times_model = TimeSformer_getattn(pretrained_model)
     
     #timesformer 導入

@@ -10,7 +10,7 @@
 # sh configs/r50_motr_train_eval_visem_small.sh
 
 PRETRAIN=r50_deformable_detr_plus_iterative_bbox_refinement-checkpoint.pth
-EXP_DIR=exps_visem/exp_0601_time_add_h_ep20_vit=tiny
+EXP_DIR=exps_visem/exp_0602_time_add_h_ep25_vit=times
 
 
 python3 -m torch.distributed.launch \
@@ -28,7 +28,7 @@ python3 -m torch.distributed.launch \
     --query_interaction_layer 'QIM' --extra_track_attn \
     --data_txt_path_train ./datasets/data_path/joint.train \
     --data_txt_path_val ./datasets/data_path/mot17.train \
-    --epoch 20 \
+    --epoch 25 \
     --device 'cuda' \
     --nheads 8  \
     #--pretrained ${PRETRAIN} \
