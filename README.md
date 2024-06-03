@@ -24,7 +24,7 @@ This repository is an official implementation of the paper [TiME-MOTR:]
 
 Tracking Results & Attention Weight
 
-|Before|After|
+|Attetion Weight|Tracking Results|
 |:-:|:-:|
 |<video src="https://github.com/KosugeShoui/Time_MOTR/assets/106908620/8136c140-9a7f-4cb4-bd33-39a201b8b61f">|<video src="https://github.com/KosugeShoui/Time_MOTR/assets/106908620/10c001ae-cfb5-4c67-b7ff-533d2edddf76">|
 
